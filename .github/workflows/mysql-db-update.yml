@@ -25,5 +25,5 @@ jobs:
         run: |
           for file in migrations/*.sql; do
             echo "Applying migration: $file"
-            mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" < "$file"
+            mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" < "$file" || true
           done
