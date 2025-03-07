@@ -1,36 +1,29 @@
-version: '3.8'
+name: Auto Update AWS RDS MySQL
 
-services:
-  mysql:
-    image: mysql:latest
-    container_name: mysql_db
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: Pointofsale
-      MYSQL_USER: sonarprod_admin
-      MYSQL_PASSWORD: jpfrcR3LmGdcGKKYfWsu
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
+on:
+  push:
+    branches:
+      - main  # Run when changes are pushed to main
 
-  node_app:
-    build: .
-    container_name: node_app
-    restart: always
-    depends_on:
-      - mysql
-    environment:
-      DB_HOST: mysql
-      DB_USER: sonarprod_admin
-      DB_PASSWORD: jpfrcR3LmGdcGKKYfWsu
-      DB_NAME: Pointofsale
-    ports:
-      - "3000:3000"
-    volumes:
-      - .:/usr/src/app
-    command: ["node", "server.js"]
+jobs:
+  update-db:
+    runs-on: ubuntu-latest
 
-volumes:
-  mysql_data:
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Install MySQL Client
+        run: sudo apt-get install -y mysql-client
+
+      - name: Run Database Migrations
+        env:
+          MYSQL_HOST: ${{ secrets.AWS_DB_HOST }}
+          MYSQL_USER: ${{ secrets.AWS_DB_USER }}
+          MYSQL_PASSWORD: ${{ secrets.AWS_DB_PASSWORD }}
+          MYSQL_DATABASE: ${{ secrets.AWS_DB_NAME }}
+        run: |
+          for file in migrations/*.sql; do
+            echo "Applying migration: $file"
+            mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" < "$file"
+          done
