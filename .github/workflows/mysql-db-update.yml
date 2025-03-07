@@ -1,35 +1,36 @@
-name: MySQL DB Update
+version: '3.8'
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+services:
+  mysql:
+    image: mysql:latest
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: Pointofsale
+      MYSQL_USER: sonarprod_admin
+      MYSQL_PASSWORD: jpfrcR3LmGdcGKKYfWsu
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
 
-jobs:
-  update-database:
-    runs-on: ubuntu-latest
+  node_app:
+    build: .
+    container_name: node_app
+    restart: always
+    depends_on:
+      - mysql
+    environment:
+      DB_HOST: mysql
+      DB_USER: sonarprod_admin
+      DB_PASSWORD: jpfrcR3LmGdcGKKYfWsu
+      DB_NAME: Pointofsale
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/usr/src/app
+    command: ["node", "server.js"]
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Install MySQL Client
-        run: |
-          sudo apt update
-          sudo apt install -y mysql-client
-
-      - name: Apply Database Migrations
-        env:
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASS: ${{ secrets.DB_PASS }}
-        run: |
-          mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < migrations/001-init-schema.sql
-          mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < migrations/002-add-users.sql
-          mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < migrations/003-update-schema.sql
-
+volumes:
+  mysql_data:
